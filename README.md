@@ -6,12 +6,12 @@ YouTube Data API v3 を使って、YouTubeチャンネル/動画/コメントの
 - フィルタしながらプレビュー → CSV出力
 - グラフはHTMLで保存
 
-### 事前準備（YouTube Data API キー）
+## 事前準備
 
 ### (1) API キーの取得
 Google Cloud で YouTube Data API v3 を有効化し、APIキーを取得してください。
 
-### (2) Python 環境効率
+### (2) Python 環境構築
 このツールのコードは Python で書かれており、動かすには Python が必要です。
 
 
