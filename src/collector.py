@@ -298,6 +298,7 @@ def collect_uploads_and_videos(
         v_items, errs = fetch_videos(api, target_ids, part=part)
         result.errors.extend(errs)
         v_items = _filter_video_items(v_items, include_broadcast_kinds)
+        result.collected_video_ids = [it.get("id") for it in v_items if it.get("id")]
         result.videos_upserted += storage.upsert_videos(conn, v_items) if v_items else 0
     else:
         target_ids = list(dict.fromkeys(all_new_video_ids))

@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import re
+import pandas as pd
 from typing import Dict, List, Optional, Tuple
-
 import streamlit as st
+
+from src import analysis
 
 
 # RFC3339 like: 2024-01-01T00:00:00Z or with fractional seconds
@@ -95,8 +97,8 @@ def advanced_search_collect_filters_expander() -> Dict[str, object]:
     """Advanced filters for *collection* based on search.list.
 
     Differences from advanced_search_filters_expander:
-      - exposes `order`
-      - adds `exclude_live` (applied after videos.list via snippet.liveBroadcastContent)
+        - exposes `order`
+        - adds `exclude_live` (applied after videos.list via snippet.liveBroadcastContent)
     """
 
     with st.expander("収集条件（検索）", expanded=True):
@@ -119,6 +121,7 @@ def advanced_search_collect_filters_expander() -> Dict[str, object]:
                 format_func=lambda x: order_label.get(x, x),
                 help="diff収集は『公開日（新しい順）』のときのみ有効です。",
             )
+            video_type = st.selectbox("種別（videoType）", ["any", "episode", "movie"], index=0)
         with col2:
             region_code = st.text_input("国コード（regionCode, 任意）", value="JP").strip() or None
             relevance_language = st.text_input("言語（relevanceLanguage, 任意）", value="ja").strip() or None
@@ -131,8 +134,6 @@ def advanced_search_collect_filters_expander() -> Dict[str, object]:
             video_duration = st.selectbox("動画長（videoDuration）", ["any", "short", "medium", "long"], index=0)
         with col5:
             video_definition = st.selectbox("画質（videoDefinition）", ["any", "high", "standard"], index=0)
-        with col6:
-            video_type = st.selectbox("種別（videoType）", ["any", "episode", "movie"], index=0)
 
         st.markdown("**期間指定**（RFC3339）例: `2024-01-01T00:00:00Z`")
         col7, col8 = st.columns(2)
@@ -194,6 +195,95 @@ def render_video_cards(results: List[dict]) -> None:
 
                 if description:
                     st.write(_truncate(description, 180))
+
+def video_filter_panel(
+    ch_df: pd.DataFrame,
+    labeler,
+    *,
+    key_prefix: str,
+    show_top_n: bool = False,
+    show_view_range: bool = True,
+    show_duration_max: bool = True,
+    show_duration_min: bool = True,
+) -> Tuple[analysis.VideoFilters, Optional[int]]:
+    all_ids = ch_df["channel_id"].astype(str).tolist()
+
+    # Row 1
+    r1 = st.columns([1, 1])
+    with r1[0]:
+        try:
+            channel_ids = st.multiselect(
+                "チャンネル（複数可）",
+                options=all_ids,
+                format_func=labeler,
+                default=[],
+                placeholder="チャンネル名で検索",
+                key=f"{key_prefix}_channels",
+            )
+        except TypeError:
+            channel_ids = st.multiselect(
+                "チャンネル（複数可）",
+                options=all_ids,
+                format_func=labeler,
+                default=[],
+                key=f"{key_prefix}_channels",
+            )
+    with r1[1]:
+        title_contains = st.text_input("タイトル（部分一致）", value="", key=f"{key_prefix}_title")
+
+    # Row 2
+    r2 = st.columns([1, 1, 1, 1,])
+    with r2[0]:
+        date_from = st.text_input("公開日（開始 YYYY-MM-DD）", value="", key=f"{key_prefix}_from")
+    with r2[1]:
+        date_to = st.text_input("公開日（終了 YYYY-MM-DD）", value="", key=f"{key_prefix}_to")
+    with r2[2]:
+        bc = st.selectbox(
+            "配信状態",
+            ["すべて", "通常動画", "ライブアーカイブ", "ライブ配信中", "予約/配信予定", "判定不可"],
+            index=0,
+            key=f"{key_prefix}_bc",
+        )
+    with r2[3]:
+        shorts = st.selectbox("ショート動画", ["すべて", "Shortsのみ", "Shorts除外"], index=0, key=f"{key_prefix}_shorts")
+
+    min_views = max_views = dur_max = None
+
+    # Row 3（閲覧用オプション）
+    if show_view_range or show_duration_max or show_duration_min:
+        r3 = st.columns([1, 1, 1, 1])
+        with r3[0]:
+            if show_view_range:
+                min_views = st.number_input("最小再生数", min_value=0, value=0, step=100, key=f"{key_prefix}_minv")
+        with r3[1]:
+            if show_view_range:
+                max_views = st.number_input("最大再生数（0=無制限）", min_value=0, value=0, step=100, key=f"{key_prefix}_maxv")
+        with r3[2]:
+            if show_duration_min:
+                dur_min = st.number_input("最小長（秒, 0=無制限）", min_value=0, value=0, step=10, key=f"{key_prefix}_min_dur")
+        with r3[3]:
+            if show_duration_max:
+                dur_max = st.number_input("最大長（秒, 0=無制限）", min_value=0, value=0, step=10, key=f"{key_prefix}_max_dur")
+    # Row 4（閲覧用オプション）
+    top_n = None
+    if show_top_n:
+        r4 = st.columns([1, 1, 1, 1])
+        with r4[0]:
+            top_n = st.number_input("上位N", min_value=5, max_value=100, value=20, step=5, key=f"{key_prefix}_topn")
+
+    f = analysis.VideoFilters(
+        channel_ids=(channel_ids or None),
+        date_from=(date_from.strip() or None),
+        date_to=(date_to.strip() or None),
+        title_contains=(title_contains.strip() or None),
+        min_views=(int(min_views) if min_views else None),
+        max_views=(int(max_views) if max_views else None),
+        max_duration_sec=(int(dur_max) if dur_max else None),
+        min_duration_sec=(int(dur_min) if dur_max else None),
+        include_shorts=(True if shorts == "Shortsのみ" else False if shorts == "Shorts除外" else None),
+        broadcast_kinds=(None if bc == "すべて" else [bc]),
+    )
+    return f, (int(top_n) if top_n is not None else None)
 
 
 def _truncate(s: str, n: int) -> str:

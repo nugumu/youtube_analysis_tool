@@ -129,8 +129,8 @@ def page_setup():
 
 
 def page_collect_by_search():
-    st.header("収集")
-    st.caption("※日時（published_at / captured_at / fetched_at など）は、YouTube Data APIの値に従い基本的にUTC（末尾Z）です。日本時間（JST）にするには +9時間してください。")
+    st.header("データ収集")
+    st.info("日時は、YouTube Data APIの値に従い基本的にUTC（末尾Z）です。日本時間（JST）にするには +9時間してください。")
 
     if not _ctx_ready():
         st.warning("先に『セットアップ』でAPIキーとプロジェクトを設定してください。")
@@ -240,6 +240,35 @@ def page_collect_by_search():
     )
     include_kinds = include_kinds or kind_opts
 
+    with st.expander("4) コメント収集（任意）", expanded=False):
+        fetch_comments = st.checkbox("コメントも取得（トップレベルのみ）", value=False)
+
+        comment_order_label = st.selectbox(
+            "コメントの並び順",
+            options=["新しい順", "人気順"],
+            index=0,
+            help="YouTube Data APIの order=time / relevance に対応します。",
+        )
+        comment_order = "time" if comment_order_label == "新しい順" else "relevance"
+
+        comment_pages = st.number_input(
+            "取得ページ上限/動画（1ページ=最大100件）",
+            min_value=1,
+            max_value=20,
+            value=5,
+            step=1,
+            help="例：5ページなら最大500件/動画（トップレベルのみ）。",
+        )
+
+        comment_max_videos = st.number_input(
+            "コメント取得の対象動画数上限（0=制限なし）",
+            min_value=0,
+            max_value=50000,
+            value=500,
+            step=50,
+            help="動画数×ページ上限だけAPI呼び出しが増えるため、暴走防止に推奨。",
+        )
+
     st.caption("クォータ目安（概算）")
     est_rows = []
     if use_search:
@@ -319,6 +348,51 @@ def page_collect_by_search():
 
                 conn.commit()
 
+            res_comments = None
+            if fetch_comments:
+                vids_for_comments = []
+
+                if res_search is not None:
+                    vids_for_comments += (res_search.collected_video_ids or [])
+                if res_channel is not None:
+                    vids_for_comments += (res_channel.collected_video_ids or [])
+
+                # 重複除去・空除去
+                vids_for_comments = list(dict.fromkeys([v for v in vids_for_comments if v]))
+
+                # 上限適用
+                if comment_max_videos and int(comment_max_videos) > 0:
+                    vids_for_comments = vids_for_comments[: int(comment_max_videos)]
+
+                if vids_for_comments:
+                    job2 = storage.create_job(conn, "collect_comments", {
+                        "video_count": len(vids_for_comments),
+                        "max_pages_per_video": int(comment_pages),
+                        "order": comment_order,
+                    })
+                    conn.commit()
+
+                    with st.spinner("コメント収集中..."):
+                        res_comments = collector.collect_comments_for_videos(
+                            api,
+                            conn,
+                            vids_for_comments,
+                            max_pages_per_video=int(comment_pages),
+                            order=comment_order,
+                        )
+                        conn.commit()
+
+                    storage.finish_job(conn, job2, "ok", {
+                        "threads_upserted": res_comments.comments_threads_upserted,
+                        "comments_upserted": res_comments.comments_upserted,
+                        "errors": res_comments.errors[:50],
+                        "api_calls": api.stats.calls,
+                        "quota_units": api.stats.quota_units,
+                    })
+                    conn.commit()
+                else:
+                    st.warning("今回の収集でコメント対象の動画が無かったため、コメント収集はスキップしました。")
+
             # Track the search run -> videos mapping (optional)
             if use_search:
                 try:
@@ -361,6 +435,8 @@ def page_collect_by_search():
                 msgs.append(f"検索: 発見={res_search.video_ids_found}, 新規={res_search.new_videos}, 動画保存={res_search.videos_upserted}")
             if res_channel is not None:
                 msgs.append(f"チャンネル: 発見={res_channel.video_ids_found}, 新規={res_channel.new_videos}, 動画保存={res_channel.videos_upserted}")
+            if res_comments is not None:
+                msgs.append(f"コメント: スレッド保存={res_comments.comments_threads_upserted}, コメント保存={res_comments.comments_upserted}")
             st.success(" / ".join(msgs) if msgs else "完了")
             st.info(f"API呼び出し回数={api.stats.calls}, 推定クォータ={api.stats.quota_units}")
 
@@ -397,12 +473,12 @@ def page_collect_by_search():
 
 
 def page_explore_export():
-    st.header("閲覧 & CSV出力")
+    st.header("データ閲覧 & CSV出力")
     if not _ctx_ready():
         st.warning("先に『セットアップ』でAPIキーとプロジェクトを設定してください。")
         return
 
-    st.caption("※日時（published_at / captured_at / fetched_at など）は、YouTube Data APIの値に従い基本的にUTC（末尾Z）です。日本時間（JST）にするには +9時間してください。")
+    st.info("日時は、YouTube Data APIの値に従い基本的にUTC（末尾Z）です。日本時間（JST）にするには +9時間してください。")
 
     conn = _open_conn()
     try:
@@ -431,102 +507,26 @@ def page_explore_export():
             df = ch_df
         elif dataset == "videos":
             st.subheader("フィルタ（動画）")
-            # チャンネル選択（英語プレースホルダ回避：すべて/指定する）
-            all_ids = ch_df["channel_id"].astype(str).tolist()
-            try:
-                channel_ids = st.multiselect(
-                    "チャンネル（未選択=すべて）",
-                    options=all_ids,
-                    format_func=labeler,
-                    default=[],
-                    placeholder="選択してください",
-                    key="ex_v_channels",
-                )
-            except TypeError:
-                channel_ids = st.multiselect(
-                    "チャンネル（未選択=すべて）",
-                    options=all_ids,
-                    format_func=labeler,
-                    default=[],
-                    key="ex_v_channels",
-                )
-            # ---- Row 1 ----
-            r1c1, r1c2, r1c3 = st.columns([4, 3, 3])
-            with r1c1:
-                title_contains = st.text_input("タイトル（部分一致）", value="", key="ex_v_title")
-            with r1c2:
-                bc = st.selectbox(
-                    "配信状態",
-                    options=["すべて", "通常動画", "ライブアーカイブ", "ライブ配信中", "予約/配信予定", "判定不可"],
-                    index=0,
-                    key="ex_v_bc",
-                )
-            with r1c3:
-                shorts = st.selectbox("ショート動画", options=["すべて", "Shortsのみ", "Shorts除外"], index=0, key="ex_v_shorts")
-
-            # ---- Row 2 ----
-            r2c1, r2c2, r2c3 = st.columns([4, 4, 2])
-            with r2c1:
-                date_from = st.text_input("公開日（開始 YYYY-MM-DD）", value="", key="ex_v_from")
-            with r2c2:
-                date_to = st.text_input("公開日（終了 YYYY-MM-DD）", value="", key="ex_v_to")
-            with r2c3:
-                dur_max = st.number_input("最大長（秒）", min_value=0, value=0, step=10, key="ex_v_durmax")
-
-            # ---- Row 3 ----
-            r3c1, r3c2, r3c3 = st.columns([3, 3, 4])
-            with r3c1:
-                min_views = st.number_input("最小再生数", min_value=0, value=0, step=100, key="ex_v_minv")
-            with r3c2:
-                max_views = st.number_input("最大再生数（0=無制限）", min_value=0, value=0, step=100, key="ex_v_maxv")
-            with r3c3:
-                st.caption("※ チャンネル未指定は「すべて」。日時はUTC基準（Z）です。")
-
-            f = analysis.VideoFilters(
-                channel_ids=(channel_ids or None),  # 空ならNone扱いにしたいならここを調整
-                date_from=date_from.strip() or None,
-                date_to=date_to.strip() or None,
-                title_contains=title_contains.strip() or None,
-                min_views=int(min_views) if min_views else None,
-                max_views=int(max_views) if max_views else None,
-                max_duration_sec=int(dur_max) if dur_max else None,
-                include_shorts=(True if shorts == "Shortsのみ" else False if shorts == "Shorts除外" else None),
-                broadcast_kinds=(None if bc == "すべて" else [bc]),
+            f, _ = ui.video_filter_panel(
+                ch_df,
+                labeler,
+                key_prefix="ex_v",
+                show_top_n=False,
+                show_view_range=True,
+                show_duration_max=True,
             )
             df = analysis.load_videos_df(conn, f)
         elif dataset == "comments":
             st.subheader("フィルタ（コメント）")
-            col1, col2 = st.columns([1, 1])
-            with col1:
-                try:
-                    channel_ids = st.multiselect(
-                        "チャンネル（未選択=すべて）",
-                        options=ch_df["channel_id"].tolist(),
-                        format_func=labeler,
-                        default=[],
-                        placeholder="選択してください",
-                    )
-                except TypeError:
-                    channel_ids = st.multiselect(
-                        "チャンネル（未選択=すべて）",
-                        options=ch_df["channel_id"].tolist(),
-                        format_func=labeler,
-                        default=[],
-                    )
-                text_contains = st.text_input("本文（部分一致）", value="")
-            with col2:
-                date_from = st.text_input("日付（開始 YYYY-MM-DD）", value="")
-                date_to = st.text_input("日付（終了 YYYY-MM-DD）", value="")
-                bc_c = st.selectbox("配信状態（動画）", options=["すべて", "通常動画", "ライブアーカイブ", "ライブ配信中", "予約/配信予定", "判定不可"], index=0)
-
-            f = analysis.CommentFilters(
-                channel_ids=channel_ids or None,
-                date_from=date_from.strip() or None,
-                date_to=date_to.strip() or None,
-                text_contains=text_contains.strip() or None,
-                broadcast_kinds=(None if bc_c == "すべて" else [bc_c]),
+            f, _ = ui.video_filter_panel(
+                ch_df,
+                labeler,
+                key_prefix="ex_v",
+                show_top_n=False,
+                show_view_range=True,
+                show_duration_max=True,
             )
-            df = analysis.load_comments_df(conn, f)
+            df = analysis.load_videos_df(conn, f)
 
         elif dataset == "channel_snapshots":
             df = analysis.load_channel_snapshots_df(conn, limit=20000)
@@ -598,7 +598,7 @@ def page_stats_charts():
         st.warning("先に『セットアップ』でAPIキーとプロジェクトを設定してください。")
         return
 
-    st.caption("※公開日時（published_at）はUTC（末尾Z）の可能性が高いです。曜日/日付で集計する場合はJSTとの差に注意してください。")
+    st.info("日時は、YouTube Data APIの値に従い基本的にUTC（末尾Z）です。日本時間（JST）にするには +9時間してください。")
 
     conn = _open_conn()
     try:
@@ -607,51 +607,13 @@ def page_stats_charts():
         st.subheader("動画フィルタ")
         labeler = _make_channel_labeler(ch_df)
 
-        # ---- Row 1 ----
-        r1c1, r1c2, r1c3 = st.columns([3, 3, 2])
-        with r1c1:
-            try:
-                channel_ids = st.multiselect(
-                    "チャンネル（未選択=すべて）",
-                    options=ch_df["channel_id"].tolist(),
-                    format_func=labeler,
-                    default=[],
-                    placeholder="選択してください",
-                )
-            except TypeError:
-                channel_ids = st.multiselect(
-                    "チャンネル（未選択=すべて）",
-                    options=ch_df["channel_id"].tolist(),
-                    format_func=labeler,
-                    default=[],
-                )
-        with r1c2:
-            title_contains = st.text_input("タイトル（部分一致）", value="")
-        with r1c3:
-            top_n = st.number_input("上位N", min_value=5, max_value=100, value=20, step=5)
-
-        # ---- Row 2 ----
-        r2c1, r2c2, r2c3 = st.columns([3, 3, 2])
-        with r2c1:
-            date_from = st.text_input("公開日（開始 YYYY-MM-DD）", value="")
-        with r2c2:
-            date_to = st.text_input("公開日（終了 YYYY-MM-DD）", value="")
-        with r2c3:
-            shorts = st.selectbox("ショート動画", ["すべて", "Shortsのみ", "Shorts除外"], index=0)
-
-        # ---- Row 3 ----（幅を使って見やすく）
-        bc_stats = st.selectbox(
-            "配信状態",
-            ["すべて", "通常動画", "ライブアーカイブ", "ライブ配信中", "予約/配信予定", "判定不可"],
-            index=0,
-        )
-        f = analysis.VideoFilters(
-            channel_ids=channel_ids or None,
-            date_from=date_from.strip() or None,
-            date_to=date_to.strip() or None,
-            title_contains=title_contains.strip() or None,
-            include_shorts=(True if shorts == "Shortsのみ" else False if shorts == "Shorts除外" else None),
-            broadcast_kinds=(None if bc_stats == "すべて" else [bc_stats]),
+        f, top_n = ui.video_filter_panel(
+            ch_df,
+            labeler,
+            key_prefix="st_v",
+            show_top_n=True,
+            show_view_range=True,
+            show_duration_max=True,
         )
         df = analysis.load_videos_df(conn, f)
 
@@ -783,7 +745,7 @@ def page_snapshots():
 
     conn = _open_conn()
     try:
-        st.caption("※captured_at はUTC（末尾Z）で保存しています。日本時間（JST）にするには +9時間してください。")
+        st.info("日時は、YouTube Data APIの値に従い基本的にUTC（末尾Z）です。日本時間（JST）にするには +9時間してください。")
         ch_df = analysis.load_channels_df(conn)
         labeler = _make_channel_labeler(ch_df)
         ch_df2 = ch_df.copy()
@@ -933,10 +895,7 @@ def page_data_dictionary():
         "このツールは、YouTube Data API v3 のレスポンスをSQLite（data/<project>.db）に保存しています。\n"
         "画面で扱うデータセット（channels / videos / comments / snapshots など）の英語カラム名の意味をここにまとめます。"
     )
-    st.info(
-        "日時カラム（published_at / captured_at / fetched_at / collected_at など）は、YouTube APIのRFC3339（多くはUTCのZ）をそのまま保存しています。"
-        "日本時間（JST）にするには +9時間してください。"
-    )
+    st.info("日時は、YouTube Data APIの値に従い基本的にUTC（末尾Z）です。日本時間（JST）にするには +9時間してください。")
 
     def _df(rows):
         return pd.DataFrame(rows)[["カラム", "意味（日本語）", "説明", "注意"]]
@@ -1106,8 +1065,8 @@ def page_data_dictionary():
 
 PAGES = {
     "セットアップ": page_setup,
-    "収集": page_collect_by_search,
-    "閲覧 & CSV出力": page_explore_export,
+    "データ収集": page_collect_by_search,
+    "データ閲覧 & CSV出力": page_explore_export,
     "統計 & グラフ": page_stats_charts,
     "スナップショット": page_snapshots,
     "データガイド": page_data_dictionary,
