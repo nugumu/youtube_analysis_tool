@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 import pandas as pd
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union, Literal, Any
 import streamlit as st
 
 from src import analysis
@@ -196,16 +196,19 @@ def render_video_cards(results: List[dict]) -> None:
                 if description:
                     st.write(_truncate(description, 180))
 
-def video_filter_panel(
+FilterObj = Union[analysis.VideoFilters, analysis.CommentFilters]
+
+def content_filter_panel(
     ch_df: pd.DataFrame,
     labeler,
     *,
+    mode: Literal["videos", "comments"],
     key_prefix: str,
     show_top_n: bool = False,
     show_view_range: bool = True,
     show_duration_max: bool = True,
     show_duration_min: bool = True,
-) -> Tuple[analysis.VideoFilters, Optional[int]]:
+) -> Tuple[FilterObj, Optional[int], Dict[str, Any]]:
     all_ids = ch_df["channel_id"].astype(str).tolist()
 
     # Row 1
@@ -228,62 +231,107 @@ def video_filter_panel(
                 default=[],
                 key=f"{key_prefix}_channels",
             )
+
     with r1[1]:
-        title_contains = st.text_input("タイトル（部分一致）", value="", key=f"{key_prefix}_title")
+        keyword = st.text_input(
+            "キーワード（部分一致）",
+            value="",
+            help="動画モードではタイトル、コメントモードでは本文に適用します。",
+            key=f"{key_prefix}_keyword",
+        )
 
     # Row 2
-    r2 = st.columns([1, 1, 1, 1,])
+    r2 = st.columns([1, 1, 1, 1])
     with r2[0]:
-        date_from = st.text_input("公開日（開始 YYYY-MM-DD）", value="", key=f"{key_prefix}_from")
+        date_from = st.text_input(
+            "日付（開始 YYYY-MM-DD）",
+            value="",
+            help="動画=公開日、コメント=コメント投稿日",
+            key=f"{key_prefix}_from",
+        )
     with r2[1]:
-        date_to = st.text_input("公開日（終了 YYYY-MM-DD）", value="", key=f"{key_prefix}_to")
+        date_to = st.text_input(
+            "日付（終了 YYYY-MM-DD）",
+            value="",
+            help="動画=公開日、コメント=コメント投稿日",
+            key=f"{key_prefix}_to",
+        )
     with r2[2]:
         bc = st.selectbox(
-            "配信状態",
+            "配信状態（動画）",
             ["すべて", "通常動画", "ライブアーカイブ", "ライブ配信中", "予約/配信予定", "判定不可"],
             index=0,
             key=f"{key_prefix}_bc",
         )
     with r2[3]:
-        shorts = st.selectbox("ショート動画", ["すべて", "Shortsのみ", "Shorts除外"], index=0, key=f"{key_prefix}_shorts")
+        shorts = st.selectbox(
+            "ショート動画（動画）",
+            ["すべて", "Shortsのみ", "Shorts除外"],
+            index=0,
+            key=f"{key_prefix}_shorts",
+        )
 
-    min_views = max_views = dur_max = None
-
-    # Row 3（閲覧用オプション）
+    # Row 3
+    min_views = max_views = None
+    dur_min = dur_max = None
     if show_view_range or show_duration_max or show_duration_min:
         r3 = st.columns([1, 1, 1, 1])
         with r3[0]:
             if show_view_range:
-                min_views = st.number_input("最小再生数", min_value=0, value=0, step=100, key=f"{key_prefix}_minv")
+                min_views = st.number_input("最小再生数（動画）", min_value=0, value=0, step=100, key=f"{key_prefix}_minv")
         with r3[1]:
             if show_view_range:
-                max_views = st.number_input("最大再生数（0=無制限）", min_value=0, value=0, step=100, key=f"{key_prefix}_maxv")
+                max_views = st.number_input("最大再生数（動画, 0=無制限）", min_value=0, value=0, step=100, key=f"{key_prefix}_maxv")
         with r3[2]:
             if show_duration_min:
                 dur_min = st.number_input("最小長（秒, 0=無制限）", min_value=0, value=0, step=10, key=f"{key_prefix}_min_dur")
         with r3[3]:
             if show_duration_max:
                 dur_max = st.number_input("最大長（秒, 0=無制限）", min_value=0, value=0, step=10, key=f"{key_prefix}_max_dur")
-    # Row 4（閲覧用オプション）
+
+    # Row 4（任意：上位N）
     top_n = None
     if show_top_n:
         r4 = st.columns([1, 1, 1, 1])
         with r4[0]:
             top_n = st.number_input("上位N", min_value=5, max_value=100, value=20, step=5, key=f"{key_prefix}_topn")
 
-    f = analysis.VideoFilters(
+    include_shorts = True if shorts == "Shortsのみ" else False if shorts == "Shorts除外" else None
+    broadcast_kinds = None if bc == "すべて" else [bc]
+
+    # mode別にFiltersを生成
+    extra: Dict[str, Any] = {
+        "include_shorts": include_shorts,
+        "min_views": int(min_views) if min_views else None,
+        "max_views": int(max_views) if max_views else None,
+        "min_duration_sec": int(dur_min) if dur_min else None,
+        "max_duration_sec": int(dur_max) if dur_max else None,
+    }
+
+    if mode == "videos":
+        f: FilterObj = analysis.VideoFilters(
+            channel_ids=(channel_ids or None),
+            date_from=(date_from.strip() or None),
+            date_to=(date_to.strip() or None),
+            title_contains=(keyword.strip() or None),
+            min_views=extra["min_views"],
+            max_views=extra["max_views"],
+            min_duration_sec=extra["min_duration_sec"],
+            max_duration_sec=extra["max_duration_sec"],
+            include_shorts=include_shorts,
+            broadcast_kinds=broadcast_kinds,
+        )
+        return f, (int(top_n) if top_n is not None else None), {}
+
+    # comments：CommentFiltersに入るのは“コメント側に確実にある条件”だけ
+    f = analysis.CommentFilters(
         channel_ids=(channel_ids or None),
         date_from=(date_from.strip() or None),
         date_to=(date_to.strip() or None),
-        title_contains=(title_contains.strip() or None),
-        min_views=(int(min_views) if min_views else None),
-        max_views=(int(max_views) if max_views else None),
-        max_duration_sec=(int(dur_max) if dur_max else None),
-        min_duration_sec=(int(dur_min) if dur_max else None),
-        include_shorts=(True if shorts == "Shortsのみ" else False if shorts == "Shorts除外" else None),
-        broadcast_kinds=(None if bc == "すべて" else [bc]),
+        text_contains=(keyword.strip() or None),
+        broadcast_kinds=broadcast_kinds,
     )
-    return f, (int(top_n) if top_n is not None else None)
+    return f, (int(top_n) if top_n is not None else None), extra
 
 
 def _truncate(s: str, n: int) -> str:

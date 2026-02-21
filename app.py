@@ -507,26 +507,30 @@ def page_explore_export():
             df = ch_df
         elif dataset == "videos":
             st.subheader("フィルタ（動画）")
-            f, _ = ui.video_filter_panel(
+            f, _, extra = ui.content_filter_panel(
                 ch_df,
                 labeler,
+                mode="videos",
                 key_prefix="ex_v",
                 show_top_n=False,
                 show_view_range=True,
                 show_duration_max=True,
+                show_duration_min=True,
             )
             df = analysis.load_videos_df(conn, f)
         elif dataset == "comments":
             st.subheader("フィルタ（コメント）")
-            f, _ = ui.video_filter_panel(
+            f, _, extra = ui.content_filter_panel(
                 ch_df,
                 labeler,
-                key_prefix="ex_v",
+                mode="comments",
+                key_prefix="ex_c",
                 show_top_n=False,
-                show_view_range=True,
-                show_duration_max=True,
+                show_view_range=False,
+                show_duration_max=False,
+                show_duration_min=False,
             )
-            df = analysis.load_videos_df(conn, f)
+            df = analysis.load_comments_df(conn, f)
 
         elif dataset == "channel_snapshots":
             df = analysis.load_channel_snapshots_df(conn, limit=20000)
@@ -607,13 +611,15 @@ def page_stats_charts():
         st.subheader("動画フィルタ")
         labeler = _make_channel_labeler(ch_df)
 
-        f, top_n = ui.video_filter_panel(
+        f, top_n, extra = ui.content_filter_panel(
             ch_df,
             labeler,
+            mode="videos",
             key_prefix="st_v",
             show_top_n=True,
             show_view_range=True,
             show_duration_max=True,
+            show_duration_min=True,
         )
         df = analysis.load_videos_df(conn, f)
 
