@@ -209,3 +209,7 @@ __marimo__/
 
 # Mac cache
 .DS_Store
+
+# Log
+outputs/
+data/
