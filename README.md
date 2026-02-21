@@ -1,4 +1,4 @@
-# YouTube Data API v3 – 収集 & 統計分析ツール（Streamlit）
+# YouTube  データ収集 & 統計ツール
 
 YouTube Data API v3 を使って、YouTubeチャンネル/動画/コメントのデータをローカル環境に収集し、基本統計・可視化・CSV出力を行うツールです。
 
