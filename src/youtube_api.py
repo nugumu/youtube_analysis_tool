@@ -30,14 +30,24 @@ class ApiStats:
 
 
 class YouTubeAPI:
-    def __init__(self, api_key: str, user_agent: str = "yt-stats-tool/1.0", timeout: int = 30):
+    def __init__(
+        self, api_key: str,
+        user_agent: str = "yt-stats-tool/1.0",
+        timeout: int = 30,
+    ):
         self.api_key = api_key
         self.timeout = timeout
         self.sess = requests.Session()
         self.sess.headers.update({"User-Agent": user_agent})
         self.stats = ApiStats()
 
-    def _request(self, path: str, params: Dict[str, Any], quota_key: str, retries: int = 5) -> Dict[str, Any]:
+    def _request(
+        self,
+        path: str,
+        params: Dict[str, Any],
+        quota_key: str,
+        retries: int = 5,
+    ) -> Dict[str, Any]:
         url = f"{BASE_URL}/{path}"
         p = dict(params)
         p["key"] = self.api_key
@@ -114,9 +124,16 @@ class YouTubeAPI:
             params["pageToken"] = page_token
         return self._request("playlistItems", params, "playlistItems.list")
 
-    def comment_threads_list(self, *, part: str, video_id: str, max_results: int = 100,
-                             page_token: Optional[str] = None, order: str = "time",
-                             text_format: str = "plainText") -> Dict[str, Any]:
+    def comment_threads_list(
+        self,
+        *,
+        part: str,
+        video_id: str,
+        max_results: int = 100,
+        page_token: Optional[str] = None,
+        order: str = "time",
+        text_format: str = "plainText",
+    ) -> Dict[str, Any]:
         params: Dict[str, Any] = {
             "part": part,
             "videoId": video_id,
@@ -128,8 +145,15 @@ class YouTubeAPI:
             params["pageToken"] = page_token
         return self._request("commentThreads", params, "commentThreads.list")
 
-    def search_list(self, *, part: str, q: str, type_: str = "channel", max_results: int = 5,
-                    page_token: Optional[str] = None) -> Dict[str, Any]:
+    def search_list(
+        self,
+        *,
+        part: str,
+        q: str,
+        type_: str = "channel",
+        max_results: int = 5,
+        page_token: Optional[str] = None,
+    ) -> Dict[str, Any]:
         params: Dict[str, Any] = {"part": part, "q": q, "type": type_, "maxResults": max_results}
         if page_token:
             params["pageToken"] = page_token
@@ -271,11 +295,18 @@ class YouTubeAPI:
 # ---------- convenience batch wrappers ----------
 
 
-def batched(seq: List[str], n: int) -> List[List[str]]:
+def batched(
+    seq: List[str],
+    n: int,
+) -> List[List[str]]:
     return [seq[i:i + n] for i in range(0, len(seq), n)]
 
 
-def fetch_channels(api: YouTubeAPI, channel_ids: List[str], part: str) -> Tuple[List[Dict[str, Any]], List[str]]:
+def fetch_channels(
+    api: YouTubeAPI,
+    channel_ids: List[str],
+    part: str,
+) -> Tuple[List[Dict[str, Any]], List[str]]:
     items: List[Dict[str, Any]] = []
     errors: List[str] = []
     for batch in batched(channel_ids, 50):
@@ -287,7 +318,11 @@ def fetch_channels(api: YouTubeAPI, channel_ids: List[str], part: str) -> Tuple[
     return items, errors
 
 
-def fetch_videos(api: YouTubeAPI, video_ids: List[str], part: str) -> Tuple[List[Dict[str, Any]], List[str]]:
+def fetch_videos(
+    api: YouTubeAPI,
+    video_ids: List[str],
+    part: str,
+) -> Tuple[List[Dict[str, Any]], List[str]]:
     items: List[Dict[str, Any]] = []
     errors: List[str] = []
     for batch in batched(video_ids, 50):

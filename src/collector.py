@@ -69,8 +69,8 @@ def fetch_channel_video_ids(
     """Return video IDs from the channel uploads playlist.
 
     mode:
-      - 'diff': stop when we see a known video_id (fast incremental)
-      - 'full': traverse all pages up to max_videos
+        - 'diff': stop when we see a known video_id (fast incremental)
+        - 'full': traverse all pages up to max_videos
     """
     errors: List[str] = []
 

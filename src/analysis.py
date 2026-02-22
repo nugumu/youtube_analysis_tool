@@ -68,7 +68,7 @@ class CommentFilters:
 
 def load_channels_df(conn: sqlite3.Connection) -> pd.DataFrame:
     df = pd.read_sql_query(
-        "SELECT * FROM channels ORDER BY (subscriber_count IS NULL), subscriber_count DESC", conn
+        "select * from channels order by (subscriber_count is null), subscriber_count desc", conn
     )
     return df
 
@@ -78,7 +78,7 @@ def load_videos_df(conn: sqlite3.Connection, f: VideoFilters) -> pd.DataFrame:
     params: List = []
 
     if f.channel_ids:
-        where.append("v.channel_id IN ({})".format(",".join(["?"] * len(f.channel_ids))))
+        where.append("v.channel_id in ({})".format(",".join(["?"] * len(f.channel_ids))))
         params.extend(f.channel_ids)
 
     if f.date_from:
@@ -89,21 +89,21 @@ def load_videos_df(conn: sqlite3.Connection, f: VideoFilters) -> pd.DataFrame:
         params.append(f.date_to)
 
     if f.title_contains:
-        where.append("v.title LIKE ?")
+        where.append("v.title like ?")
         params.append(f"%{f.title_contains}%")
 
     if f.min_views is not None:
-        where.append("COALESCE(v.view_count,0) >= ?")
+        where.append("coalesce(v.view_count,0) >= ?")
         params.append(int(f.min_views))
     if f.max_views is not None:
-        where.append("COALESCE(v.view_count,0) <= ?")
+        where.append("coalesce(v.view_count,0) <= ?")
         params.append(int(f.max_views))
 
     if f.min_duration_sec is not None:
-        where.append("COALESCE(v.duration_seconds,0) >= ?")
+        where.append("coalesce(v.duration_seconds,0) >= ?")
         params.append(int(f.min_duration_sec))
     if f.max_duration_sec is not None:
-        where.append("COALESCE(v.duration_seconds,0) <= ?")
+        where.append("coalesce(v.duration_seconds,0) <= ?")
         params.append(int(f.max_duration_sec))
 
     sql = """
@@ -141,11 +141,11 @@ def load_comments_df(conn: sqlite3.Connection, f: CommentFilters) -> pd.DataFram
     params: List = []
 
     if f.channel_ids:
-        where.append("v.channel_id IN ({})".format(",".join(["?"] * len(f.channel_ids))))
+        where.append("v.channel_id in ({})".format(",".join(["?"] * len(f.channel_ids))))
         params.extend(f.channel_ids)
 
     if f.video_ids:
-        where.append("c.video_id IN ({})".format(",".join(["?"] * len(f.video_ids))))
+        where.append("c.video_id in ({})".format(",".join(["?"] * len(f.video_ids))))
         params.extend(f.video_ids)
 
     if f.date_from:
@@ -156,25 +156,28 @@ def load_comments_df(conn: sqlite3.Connection, f: CommentFilters) -> pd.DataFram
         params.append(f.date_to)
 
     if f.text_contains:
-        where.append("c.text LIKE ?")
+        where.append("c.text like ?")
         params.append(f"%{f.text_contains}%")
 
     sql = """
-    SELECT c.*,
-           v.channel_id,
-           v.title AS video_title,
-           ch.title AS channel_title,
-           v.live_broadcast_content,
-           v.scheduled_start_time,
-           v.actual_start_time,
-           v.actual_end_time
-    FROM comments c
-    JOIN videos v ON v.video_id = c.video_id
-    LEFT JOIN channels ch ON ch.channel_id = v.channel_id
+    select
+        c.*
+        ,v.channel_id
+        ,v.title as video_title
+        ,ch.title as channel_title
+        ,v.live_broadcast_content
+        ,v.scheduled_start_time
+        ,v.actual_start_time
+        ,v.actual_end_time
+    from comments c
+    join videos v
+        on v.video_id = c.video_id
+    left join channels ch
+        on ch.channel_id = v.channel_id
     """.strip()
     if where:
-        sql += " WHERE " + " AND ".join(where)
-    sql += " ORDER BY c.published_at DESC"
+        sql += " where " + " and ".join(where)
+    sql += " order by c.published_at desc"
 
     df = pd.read_sql_query(sql, conn, params=params)
     if not df.empty:
@@ -202,17 +205,19 @@ def summarize_by_day(df_videos: pd.DataFrame, metric: str = "view_count") -> pd.
 def load_channel_snapshots_df(conn: sqlite3.Connection, limit: int = 1000) -> pd.DataFrame:
     """チャンネル名を結合したチャンネルスナップショット。"""
     sql = f"""
-    SELECT cs.id,
-           cs.captured_at,
-           cs.channel_id,
-           ch.title AS channel_title,
-           cs.view_count,
-           cs.subscriber_count,
-           cs.video_count
-    FROM channel_snapshots cs
-    LEFT JOIN channels ch ON ch.channel_id = cs.channel_id
-    ORDER BY cs.captured_at DESC
-    LIMIT {int(limit)}
+    select
+        cs.id
+        ,cs.captured_at
+        ,cs.channel_id
+        ,ch.title as channel_title
+        ,cs.view_count
+        ,cs.subscriber_count
+        ,cs.video_count
+    from channel_snapshots cs
+    left join channels ch
+        on ch.channel_id = cs.channel_id
+    order by cs.captured_at desc
+    limit {int(limit)}
     """.strip()
     return pd.read_sql_query(sql, conn)
 
@@ -220,19 +225,22 @@ def load_channel_snapshots_df(conn: sqlite3.Connection, limit: int = 1000) -> pd
 def load_video_snapshots_df(conn: sqlite3.Connection, limit: int = 1000) -> pd.DataFrame:
     """動画タイトル/チャンネル名を結合した動画スナップショット。"""
     sql = f"""
-    SELECT vs.id,
-           vs.captured_at,
-           vs.video_id,
-           v.title AS video_title,
-           v.channel_id,
-           ch.title AS channel_title,
-           vs.view_count,
-           vs.like_count,
-           vs.comment_count
-    FROM video_snapshots vs
-    LEFT JOIN videos v ON v.video_id = vs.video_id
-    LEFT JOIN channels ch ON ch.channel_id = v.channel_id
-    ORDER BY vs.captured_at DESC
-    LIMIT {int(limit)}
+    select
+        vs.id
+        ,vs.captured_at
+        ,vs.video_id
+        ,v.title as video_title
+        ,v.channel_id
+        ,ch.title as channel_title
+        ,vs.view_count
+        ,vs.like_count
+        ,vs.comment_count
+    from video_snapshots vs
+    left join videos v
+        on v.video_id = vs.video_id
+    left join channels ch
+        on ch.channel_id = v.channel_id
+    order by vs.captured_at desc
+    limit {int(limit)}
     """.strip()
     return pd.read_sql_query(sql, conn)

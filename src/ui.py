@@ -12,7 +12,9 @@ from src import analysis
 _RFC3339_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$")
 
 
-def top_search_bar(default_api_key: str = "") -> Tuple[str, str, bool]:
+def top_search_bar(
+    default_api_key: str = "",
+) -> Tuple[str, str, bool]:
     """A Tableau-like top bar: API key + query + submit.
 
     Returns:
@@ -161,7 +163,9 @@ def advanced_search_collect_filters_expander() -> Dict[str, object]:
     }
 
 
-def render_video_cards(results: List[dict]) -> None:
+def render_video_cards(
+    results: List[dict],
+) -> None:
     """Render search results as cards, similar to the reference sorter UI."""
     st.divider()
     st.subheader(f"検索結果（新しい順）: {len(results)}件")
@@ -334,14 +338,21 @@ def content_filter_panel(
     return f, (int(top_n) if top_n is not None else None), extra
 
 
-def _truncate(s: str, n: int) -> str:
+def _truncate(
+    s: str,
+    n: int
+) -> str:
     return s if len(s) <= n else s[: n - 1] + "…"
 
 
-def _escape_md(s: str) -> str:
+def _escape_md(
+    s: str,
+) -> str:
     # Escape square brackets in markdown link text
     return s.replace("[", "［").replace("]", "］")
 
 
-def _looks_like_rfc3339(s: str) -> bool:
+def _looks_like_rfc3339(
+    s: str,
+) -> bool:
     return bool(_RFC3339_RE.match(s))

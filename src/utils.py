@@ -24,7 +24,10 @@ SHORTS_URL_RE = re.compile(r"https?://(?:www\.)?youtube\.com/shorts/([0-9A-Za-z_
 YOUTU_BE_RE = re.compile(r"https?://youtu\.be/([0-9A-Za-z_-]{11})")
 
 
-def slugify(value: str, max_len: int = 50) -> str:
+def slugify(
+    value: str,
+    max_len: int = 50,
+) -> str:
     value = unicodedata.normalize("NFKC", value).strip().lower()
     value = re.sub(r"[^a-z0-9\-_]+", "-", value)
     value = re.sub(r"-+", "-", value).strip("-")
@@ -33,12 +36,17 @@ def slugify(value: str, max_len: int = 50) -> str:
     return value[:max_len]
 
 
-def ensure_dir(p: Path) -> Path:
+def ensure_dir(
+    p: Path,
+) -> Path:
     p.mkdir(parents=True, exist_ok=True)
     return p
 
 
-def safe_filename(name: str, max_len: int = 80) -> str:
+def safe_filename(
+    name: str,
+    max_len: int = 80,
+) -> str:
     name = unicodedata.normalize("NFKC", name)
     name = re.sub(r"[\\/:*?\"<>|]+", "_", name)
     name = name.strip().strip(".")
@@ -51,14 +59,18 @@ def utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def parse_rfc3339(dt: str) -> Optional[datetime]:
+def parse_rfc3339(
+    dt: str,
+) -> Optional[datetime]:
     try:
         return dtparser.isoparse(dt)
     except Exception:
         return None
 
 
-def to_date_str(dt: Optional[datetime]) -> Optional[str]:
+def to_date_str(
+    dt: Optional[datetime],
+) -> Optional[str]:
     if dt is None:
         return None
     return dt.date().isoformat()
@@ -86,7 +98,9 @@ class ParsedInputs:
     custom_usernames: List[Tuple[str, str]]  # (kind, name)
 
 
-def parse_inputs(lines: Iterable[str]) -> ParsedInputs:
+def parse_inputs(
+    lines: Iterable[str],
+) -> ParsedInputs:
     channel_ids: List[str] = []
     video_ids: List[str] = []
     handles: List[str] = []
@@ -132,7 +146,9 @@ def parse_inputs(lines: Iterable[str]) -> ParsedInputs:
                 continue
 
     # de-dupe while preserving order
-    def dedupe(seq: List[str]) -> List[str]:
+    def dedupe(
+        seq: List[str],
+    ) -> List[str]:
         out = []
         seen = set()
         for x in seq:
@@ -149,7 +165,9 @@ def parse_inputs(lines: Iterable[str]) -> ParsedInputs:
     )
 
 
-def human_int(x: Optional[int]) -> str:
+def human_int(
+    x: Optional[int],
+) -> str:
     if x is None:
         return ""
     try:

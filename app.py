@@ -21,7 +21,9 @@ from src import ui
 st.set_page_config(page_title=CFG.app_name, layout="wide")
 
 
-def _make_channel_labeler(ch_df: pd.DataFrame):
+def _make_channel_labeler(
+    ch_df: pd.DataFrame,
+):
     """Return a formatter that shows channel title (and a short suffix if duplicated)."""
     if ch_df is None or ch_df.empty:
         return lambda x: x
@@ -39,7 +41,9 @@ def _make_channel_labeler(ch_df: pd.DataFrame):
     return f
 
 
-def _list_projects(data_root: Path) -> List[str]:
+def _list_projects(
+    data_root: Path,
+) -> List[str]:
     if not data_root.exists():
         return []
     return sorted([p.stem for p in data_root.glob("*.db")])
@@ -538,19 +542,33 @@ def page_explore_export():
             df = analysis.load_video_snapshots_df(conn, limit=20000)
 
         elif dataset == "search_runs":
-            df = pd.read_sql_query("SELECT * FROM search_runs ORDER BY collected_at DESC", conn)
+            df = pd.read_sql_query("select * from search_runs order by collected_at desc", conn)
 
         elif dataset == "search_run_videos_join":
             df = pd.read_sql_query(
                 """
-                SELECT r.id AS run_id, r.q, r.order_by, r.mode, r.collected_at,
-                       v.video_id, v.channel_id, v.title, v.published_at, v.view_count, v.like_count, v.comment_count,
-                       c.title AS channel_title
-                FROM search_runs r
-                JOIN search_run_videos rv ON rv.run_id = r.id
-                JOIN videos v ON v.video_id = rv.video_id
-                LEFT JOIN channels c ON c.channel_id = v.channel_id
-                ORDER BY r.collected_at DESC
+                select
+                    r.id as run_id
+                    ,r.q
+                    ,r.order_by
+                    ,r.mode
+                    ,r.collected_at
+                    ,v.video_id
+                    ,v.channel_id
+                    ,v.title
+                    ,v.published_at
+                    ,v.view_count
+                    ,v.like_count
+                    ,v.comment_count
+                    ,c.title as channel_title
+                from search_runs r
+                join search_run_videos rv
+                    on rv.run_id = r.id
+                join videos v
+                    on v.video_id = rv.video_id
+                left join channels c
+                    on c.channel_id = v.channel_id
+                order by r.collected_at desc
                 """,
                 conn,
             )

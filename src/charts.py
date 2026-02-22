@@ -13,7 +13,11 @@ import plotly.io as pio
 DEFAULT_TEMPLATE = "plotly_white"
 
 
-def apply_plotly_defaults(fig, *, kind: str = "generic"):
+def apply_plotly_defaults(
+    fig,
+    *,
+    kind: str = "generic",
+):
     """Set layout defaults so that standalone HTML matches the in-app look."""
     fig.update_layout(
         template=DEFAULT_TEMPLATE,
@@ -34,7 +38,9 @@ def apply_plotly_defaults(fig, *, kind: str = "generic"):
     return fig
 
 
-def plotly_to_html_bytes(fig) -> bytes:
+def plotly_to_html_bytes(
+    fig,
+) -> bytes:
     apply_plotly_defaults(fig)
     # `include_plotlyjs="cdn"` にすると、ネットワーク制限/広告ブロッカー等で
     # JSが読み込めず「真っ黒/空白」に見えるケースがある。
@@ -46,21 +52,23 @@ def plotly_to_html_bytes(fig) -> bytes:
         config={"responsive": True, "displaylogo": False},
     )
 
-    html = f"""<!doctype html>
-<html>
-  <head>
-    <meta charset=\"utf-8\" />
-    <meta name=\"darkreader-lock\" />
-    <meta name=\"color-scheme\" content=\"light only\" />
-    <meta name=\"theme-color\" content=\"#ffffff\" />
-    <style>
-      html, body {{ height: 100%; margin: 0; background: #ffffff; }}
-    </style>
-  </head>
-  <body>
-    {div}
-  </body>
-</html>"""
+    html = f"""
+    <!doctype html>
+    <html>
+        <head>
+            <meta charset=\"utf-8\" />
+            <meta name=\"darkreader-lock\" />
+            <meta name=\"color-scheme\" content=\"light only\" />
+            <meta name=\"theme-color\" content=\"#ffffff\" />
+            <style>
+                html, body {{ height: 100%; margin: 0; background: #ffffff; }}
+            </style>
+        </head>
+        <body>
+            {div}
+        </body>
+    </html>
+    """
     return html.encode("utf-8")
 
 
@@ -69,7 +77,9 @@ def plotly_to_html_bytes(fig) -> bytes:
 # ----------------------------
 
 
-def uploads_timeseries(df: pd.DataFrame):
+def uploads_timeseries(
+    df: pd.DataFrame,
+):
     if df.empty:
         fig = px.line(title="日別アップロード数")
         return apply_plotly_defaults(fig)
@@ -88,7 +98,9 @@ def uploads_timeseries(df: pd.DataFrame):
     return apply_plotly_defaults(fig)
 
 
-def views_hist(df: pd.DataFrame):
+def views_hist(
+    df: pd.DataFrame,
+):
     if df.empty:
         fig = px.histogram(title="再生数分布")
         return apply_plotly_defaults(fig)
@@ -96,7 +108,9 @@ def views_hist(df: pd.DataFrame):
     return apply_plotly_defaults(fig)
 
 
-def likes_hist(df: pd.DataFrame):
+def likes_hist(
+    df: pd.DataFrame,
+):
     if df.empty:
         fig = px.histogram(title="高評価数（LIKE）分布")
         return apply_plotly_defaults(fig)
@@ -104,7 +118,9 @@ def likes_hist(df: pd.DataFrame):
     return apply_plotly_defaults(fig)
 
 
-def comments_hist(df: pd.DataFrame):
+def comments_hist(
+    df: pd.DataFrame,
+):
     if df.empty:
         fig = px.histogram(title="コメント数分布")
         return apply_plotly_defaults(fig)
@@ -112,7 +128,9 @@ def comments_hist(df: pd.DataFrame):
     return apply_plotly_defaults(fig)
 
 
-def views_vs_duration(df: pd.DataFrame):
+def views_vs_duration(
+    df: pd.DataFrame,
+):
     if df.empty:
         fig = px.scatter(title="再生数×動画長（分）")
         return apply_plotly_defaults(fig)
@@ -129,7 +147,9 @@ def views_vs_duration(df: pd.DataFrame):
     return apply_plotly_defaults(fig)
 
 
-def views_vs_likes(df: pd.DataFrame):
+def views_vs_likes(
+    df: pd.DataFrame,
+):
     if df.empty:
         fig = px.scatter(title="再生数×高評価数")
         return apply_plotly_defaults(fig)
@@ -144,7 +164,9 @@ def views_vs_likes(df: pd.DataFrame):
     return apply_plotly_defaults(fig)
 
 
-def views_vs_comments(df: pd.DataFrame):
+def views_vs_comments(
+    df: pd.DataFrame,
+):
     if df.empty:
         fig = px.scatter(title="再生数×コメント数")
         return apply_plotly_defaults(fig)
@@ -159,7 +181,10 @@ def views_vs_comments(df: pd.DataFrame):
     return apply_plotly_defaults(fig)
 
 
-def _safe_rate(numer, denom):
+def _safe_rate(
+    numer,
+    denom,
+):
     n = pd.to_numeric(numer, errors="coerce")
     d = pd.to_numeric(denom, errors="coerce")
 
@@ -176,7 +201,9 @@ def _safe_rate(numer, denom):
     return np.nan if rate in (np.inf, -np.inf) else float(rate)
 
 
-def like_rate_hist(df: pd.DataFrame):
+def like_rate_hist(
+    df: pd.DataFrame,
+):
     if df.empty:
         fig = px.histogram(title="高評価率（LIKE/再生）分布")
         return apply_plotly_defaults(fig)
@@ -186,7 +213,9 @@ def like_rate_hist(df: pd.DataFrame):
     return apply_plotly_defaults(fig)
 
 
-def comment_rate_hist(df: pd.DataFrame):
+def comment_rate_hist(
+    df: pd.DataFrame,
+):
     if df.empty:
         fig = px.histogram(title="コメント率（コメント/再生）分布")
         return apply_plotly_defaults(fig)
@@ -196,7 +225,9 @@ def comment_rate_hist(df: pd.DataFrame):
     return apply_plotly_defaults(fig)
 
 
-def engagement_rate_hist(df: pd.DataFrame):
+def engagement_rate_hist(
+    df: pd.DataFrame,
+):
     if df.empty:
         fig = px.histogram(title="エンゲージメント率（(LIKE+コメント)/再生）分布")
         return apply_plotly_defaults(fig)
@@ -215,7 +246,13 @@ def engagement_rate_hist(df: pd.DataFrame):
     return apply_plotly_defaults(fig)
 
 
-def top_videos(df: pd.DataFrame, n: int = 20, *, metric: str = "view_count", title: Optional[str] = None):
+def top_videos(
+    df: pd.DataFrame,
+    n: int = 20,
+    *,
+    metric: str = "view_count",
+    title: Optional[str] = None,
+):
     if df.empty:
         fig = px.bar(title="上位動画")
         return apply_plotly_defaults(fig)
@@ -247,7 +284,12 @@ def top_videos(df: pd.DataFrame, n: int = 20, *, metric: str = "view_count", tit
     return apply_plotly_defaults(fig, kind="barh_long_labels")
 
 
-def top_channels(df: pd.DataFrame, n: int = 20, *, metric: str = "view_count"):
+def top_channels(
+    df: pd.DataFrame,
+    n: int = 20,
+    *,
+    metric: str = "view_count",
+):
     if df.empty:
         fig = px.bar(title="チャンネル別サマリ")
         return apply_plotly_defaults(fig)
