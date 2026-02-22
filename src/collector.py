@@ -27,8 +27,6 @@ class CollectResult:
             self.collected_video_ids = []
 
 
-
-
 def _broadcast_kind_from_item(it: Dict[str, Any]) -> str:
     sn = it.get("snippet") or {}
     lbc = sn.get("liveBroadcastContent")
@@ -46,15 +44,21 @@ def _broadcast_kind_from_item(it: Dict[str, Any]) -> str:
     return "通常動画"
 
 
-def _filter_video_items(items: List[Dict[str, Any]], include_kinds: Optional[List[str]]) -> List[Dict[str, Any]]:
+def _filter_video_items(
+    items: List[Dict[str, Any]], include_kinds: Optional[List[str]]
+) -> List[Dict[str, Any]]:
     if not items or not include_kinds:
         return items
     inc = set(include_kinds)
     return [it for it in items if _broadcast_kind_from_item(it) in inc]
 
 
-def update_channels(api: YouTubeAPI, conn: sqlite3.Connection, channel_ids: List[str]) -> Tuple[int, List[str]]:
-    items, errors = fetch_channels(api, channel_ids, part="snippet,statistics,contentDetails")
+def update_channels(
+    api: YouTubeAPI, conn: sqlite3.Connection, channel_ids: List[str]
+) -> Tuple[int, List[str]]:
+    items, errors = fetch_channels(
+        api, channel_ids, part="snippet,statistics,contentDetails"
+    )
     n = storage.upsert_channels(conn, items)
     return n, errors
 
@@ -162,7 +166,9 @@ def fetch_search_video_ids(
     total_results = min(int(total_results), 500)
 
     if mode == "diff" and order != "date":
-        errors.append("diff mode is only reliable when order=date. Falling back to full.")
+        errors.append(
+            "diff mode is only reliable when order=date. Falling back to full."
+        )
         mode = "full"
 
     known = storage.get_known_video_ids(conn)  # global
@@ -288,7 +294,9 @@ def collect_uploads_and_videos(
         if update_existing_videos:
             # get ALL known ids + new ids (bounded)
             known = list(storage.get_known_video_ids(conn, channel_id=cid))
-            all_video_ids.extend(list(dict.fromkeys(vids + known))[:max_videos_per_channel])
+            all_video_ids.extend(
+                list(dict.fromkeys(vids + known))[:max_videos_per_channel]
+            )
 
     # Upsert video details
     part = "snippet,statistics,contentDetails,liveStreamingDetails"
@@ -306,7 +314,7 @@ def collect_uploads_and_videos(
         v_items, errs = fetch_videos(api, target_ids, part=part)
         result.errors.extend(errs)
         v_items = _filter_video_items(v_items, include_broadcast_kinds)
-        result.collected_video_ids = [it.get('id') for it in v_items if it.get('id')]
+        result.collected_video_ids = [it.get("id") for it in v_items if it.get("id")]
         result.videos_upserted += storage.upsert_videos(conn, v_items) if v_items else 0
 
     return result
@@ -386,9 +394,17 @@ def collect_search_videos(
         n_v = storage.upsert_videos(conn, v_items)
         result.videos_upserted += n_v
 
-        c_ids = sorted({(it.get("snippet") or {}).get("channelId") for it in v_items if (it.get("snippet") or {}).get("channelId")})
+        c_ids = sorted(
+            {
+                (it.get("snippet") or {}).get("channelId")
+                for it in v_items
+                if (it.get("snippet") or {}).get("channelId")
+            }
+        )
         if c_ids:
-            c_items, c_errs = fetch_channels(api, list(c_ids), part="snippet,statistics,contentDetails")
+            c_items, c_errs = fetch_channels(
+                api, list(c_ids), part="snippet,statistics,contentDetails"
+            )
             result.errors.extend(c_errs)
             if c_items:
                 result.channels_upserted += storage.upsert_channels(conn, c_items)
@@ -433,7 +449,9 @@ def collect_comments_for_videos(
                 break
 
         if threads:
-            n_threads, n_comments = storage.upsert_comment_threads_and_comments(conn, vid, threads)
+            n_threads, n_comments = storage.upsert_comment_threads_and_comments(
+                conn, vid, threads
+            )
             result.comments_threads_upserted += n_threads
             result.comments_upserted += n_comments
 

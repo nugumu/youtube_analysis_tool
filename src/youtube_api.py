@@ -31,7 +31,8 @@ class ApiStats:
 
 class YouTubeAPI:
     def __init__(
-        self, api_key: str,
+        self,
+        api_key: str,
         user_agent: str = "yt-stats-tool/1.0",
         timeout: int = 30,
     ):
@@ -113,13 +114,29 @@ class YouTubeAPI:
             params["pageToken"] = page_token
         return self._request("channels", params, "channels.list")
 
-    def videos_list(self, *, part: str, ids: List[str], max_results: int = 50) -> Dict[str, Any]:
-        params: Dict[str, Any] = {"part": part, "id": ",".join(ids), "maxResults": max_results}
+    def videos_list(
+        self, *, part: str, ids: List[str], max_results: int = 50
+    ) -> Dict[str, Any]:
+        params: Dict[str, Any] = {
+            "part": part,
+            "id": ",".join(ids),
+            "maxResults": max_results,
+        }
         return self._request("videos", params, "videos.list")
 
-    def playlist_items_list(self, *, part: str, playlist_id: str, max_results: int = 50,
-                            page_token: Optional[str] = None) -> Dict[str, Any]:
-        params: Dict[str, Any] = {"part": part, "playlistId": playlist_id, "maxResults": max_results}
+    def playlist_items_list(
+        self,
+        *,
+        part: str,
+        playlist_id: str,
+        max_results: int = 50,
+        page_token: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        params: Dict[str, Any] = {
+            "part": part,
+            "playlistId": playlist_id,
+            "maxResults": max_results,
+        }
         if page_token:
             params["pageToken"] = page_token
         return self._request("playlistItems", params, "playlistItems.list")
@@ -154,7 +171,12 @@ class YouTubeAPI:
         max_results: int = 5,
         page_token: Optional[str] = None,
     ) -> Dict[str, Any]:
-        params: Dict[str, Any] = {"part": part, "q": q, "type": type_, "maxResults": max_results}
+        params: Dict[str, Any] = {
+            "part": part,
+            "q": q,
+            "type": type_,
+            "maxResults": max_results,
+        }
         if page_token:
             params["pageToken"] = page_token
         return self._request("search", params, "search.list")
@@ -299,7 +321,7 @@ def batched(
     seq: List[str],
     n: int,
 ) -> List[List[str]]:
-    return [seq[i:i + n] for i in range(0, len(seq), n)]
+    return [seq[i : i + n] for i in range(0, len(seq), n)]
 
 
 def fetch_channels(

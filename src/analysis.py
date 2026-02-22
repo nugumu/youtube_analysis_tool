@@ -22,23 +22,23 @@ def add_broadcast_kind(df: pd.DataFrame) -> pd.DataFrame:
         return df
 
     def _kind(row):
-        lbc = row.get('live_broadcast_content')
-        if lbc == 'live':
-            return 'ライブ配信中'
-        if lbc == 'upcoming':
-            return '予約/配信予定'
+        lbc = row.get("live_broadcast_content")
+        if lbc == "live":
+            return "ライブ配信中"
+        if lbc == "upcoming":
+            return "予約/配信予定"
 
-        ast = row.get('actual_start_time')
-        aen = row.get('actual_end_time')
+        ast = row.get("actual_start_time")
+        aen = row.get("actual_end_time")
         if pd.notna(ast) or pd.notna(aen):
-            return 'ライブアーカイブ'
+            return "ライブアーカイブ"
 
         if pd.isna(lbc):
-            return '判定不可'
-        return '通常動画'
+            return "判定不可"
+        return "通常動画"
 
     out = df.copy()
-    out['broadcast_kind'] = out.apply(_kind, axis=1)
+    out["broadcast_kind"] = out.apply(_kind, axis=1)
     return out
 
 
@@ -46,14 +46,18 @@ def add_broadcast_kind(df: pd.DataFrame) -> pd.DataFrame:
 class VideoFilters:
     channel_ids: Optional[List[str]] = None
     date_from: Optional[str] = None  # YYYY-MM-DD
-    date_to: Optional[str] = None    # YYYY-MM-DD
+    date_to: Optional[str] = None  # YYYY-MM-DD
     title_contains: Optional[str] = None
     min_views: Optional[int] = None
     max_views: Optional[int] = None
     min_duration_sec: Optional[int] = None
     max_duration_sec: Optional[int] = None
-    include_shorts: Optional[bool] = None  # None=all, True=only shorts, False=exclude shorts
-    broadcast_kinds: Optional[List[str]] = None  # ["通常動画", "ライブアーカイブ", "ライブ配信中", "予約/配信予定", "判定不可"]
+    include_shorts: Optional[bool] = (
+        None  # None=all, True=only shorts, False=exclude shorts
+    )
+    broadcast_kinds: Optional[List[str]] = (
+        None  # ["通常動画", "ライブアーカイブ", "ライブ配信中", "予約/配信予定", "判定不可"]
+    )
 
 
 @dataclass
@@ -68,7 +72,8 @@ class CommentFilters:
 
 def load_channels_df(conn: sqlite3.Connection) -> pd.DataFrame:
     df = pd.read_sql_query(
-        "select * from channels order by (subscriber_count is null), subscriber_count desc", conn
+        "select * from channels order by (subscriber_count is null), subscriber_count desc",
+        conn,
     )
     return df
 
@@ -78,7 +83,9 @@ def load_videos_df(conn: sqlite3.Connection, f: VideoFilters) -> pd.DataFrame:
     params: List = []
 
     if f.channel_ids:
-        where.append("v.channel_id in ({})".format(",".join(["?"] * len(f.channel_ids))))
+        where.append(
+            "v.channel_id in ({})".format(",".join(["?"] * len(f.channel_ids)))
+        )
         params.extend(f.channel_ids)
 
     if f.date_from:
@@ -141,7 +148,9 @@ def load_comments_df(conn: sqlite3.Connection, f: CommentFilters) -> pd.DataFram
     params: List = []
 
     if f.channel_ids:
-        where.append("v.channel_id in ({})".format(",".join(["?"] * len(f.channel_ids))))
+        where.append(
+            "v.channel_id in ({})".format(",".join(["?"] * len(f.channel_ids)))
+        )
         params.extend(f.channel_ids)
 
     if f.video_ids:
@@ -181,14 +190,18 @@ def load_comments_df(conn: sqlite3.Connection, f: CommentFilters) -> pd.DataFram
 
     df = pd.read_sql_query(sql, conn, params=params)
     if not df.empty:
-        df["published_date"] = pd.to_datetime(df["published_at"], errors="coerce").dt.date
+        df["published_date"] = pd.to_datetime(
+            df["published_at"], errors="coerce"
+        ).dt.date
         df = add_broadcast_kind(df)
         if f.broadcast_kinds:
             df = df[df["broadcast_kind"].isin(list(f.broadcast_kinds))]
     return df
 
 
-def summarize_by_day(df_videos: pd.DataFrame, metric: str = "view_count") -> pd.DataFrame:
+def summarize_by_day(
+    df_videos: pd.DataFrame, metric: str = "view_count"
+) -> pd.DataFrame:
     if df_videos.empty:
         return pd.DataFrame()
     tmp = df_videos.copy()
@@ -202,7 +215,9 @@ def summarize_by_day(df_videos: pd.DataFrame, metric: str = "view_count") -> pd.
     return out
 
 
-def load_channel_snapshots_df(conn: sqlite3.Connection, limit: int = 1000) -> pd.DataFrame:
+def load_channel_snapshots_df(
+    conn: sqlite3.Connection, limit: int = 1000
+) -> pd.DataFrame:
     """チャンネル名を結合したチャンネルスナップショット。"""
     sql = f"""
     select
@@ -222,7 +237,9 @@ def load_channel_snapshots_df(conn: sqlite3.Connection, limit: int = 1000) -> pd
     return pd.read_sql_query(sql, conn)
 
 
-def load_video_snapshots_df(conn: sqlite3.Connection, limit: int = 1000) -> pd.DataFrame:
+def load_video_snapshots_df(
+    conn: sqlite3.Connection, limit: int = 1000
+) -> pd.DataFrame:
     """動画タイトル/チャンネル名を結合した動画スナップショット。"""
     sql = f"""
     select

@@ -10,138 +10,138 @@ from .utils import utc_now_iso, parse_iso8601_duration_to_seconds
 
 
 SCHEMA_SQL = """
-PRAGMA journal_mode=WAL;
-PRAGMA foreign_keys=ON;
+pragma journal_mode=wal;
+pragma foreign_keys=on;
 
-CREATE TABLE IF NOT EXISTS meta (
-    k TEXT PRIMARY KEY,
-    v TEXT
+create table if not exists meta (
+    k text primary key,
+    v text
 );
 
-CREATE TABLE IF NOT EXISTS channels (
-    channel_id TEXT PRIMARY KEY,
-    title TEXT,
-    description TEXT,
-    published_at TEXT,
-    country TEXT,
-    custom_url TEXT,
-    uploads_playlist_id TEXT,
-    view_count INTEGER,
-    subscriber_count INTEGER,
-    video_count INTEGER,
-    fetched_at TEXT
+create table if not exists channels (
+    channel_id text primary key,
+    title text,
+    description text,
+    published_at text,
+    country text,
+    custom_url text,
+    uploads_playlist_id text,
+    view_count integer,
+    subscriber_count integer,
+    video_count integer,
+    fetched_at text
 );
 
-CREATE TABLE IF NOT EXISTS channel_snapshots (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    channel_id TEXT NOT NULL,
-    captured_at TEXT NOT NULL,
-    view_count INTEGER,
-    subscriber_count INTEGER,
-    video_count INTEGER,
-    FOREIGN KEY(channel_id) REFERENCES channels(channel_id)
+create table if not exists channel_snapshots (
+    id integer primary key autoincrement,
+    channel_id text not null,
+    captured_at text not null,
+    view_count integer,
+    subscriber_count integer,
+    video_count integer,
+    foreign key(channel_id) references channels(channel_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_channel_snapshots_channel_time
-    ON channel_snapshots(channel_id, captured_at);
+create index if not exists idx_channel_snapshots_channel_time
+    on channel_snapshots(channel_id, captured_at);
 
-CREATE TABLE IF NOT EXISTS videos (
-    video_id TEXT PRIMARY KEY,
-    channel_id TEXT,
-    title TEXT,
-    description TEXT,
-    published_at TEXT,
-    duration_seconds INTEGER,
-    category_id TEXT,
-    tags_json TEXT,
-    default_language TEXT,
-    live_broadcast_content TEXT,
-    scheduled_start_time TEXT,
-    actual_start_time TEXT,
-    actual_end_time TEXT,
-    view_count INTEGER,
-    like_count INTEGER,
-    comment_count INTEGER,
-    fetched_at TEXT,
-    FOREIGN KEY(channel_id) REFERENCES channels(channel_id)
+create table if not exists videos (
+    video_id text primary key,
+    channel_id text,
+    title text,
+    description text,
+    published_at text,
+    duration_seconds integer,
+    category_id text,
+    tags_json text,
+    default_language text,
+    live_broadcast_content text,
+    scheduled_start_time text,
+    actual_start_time text,
+    actual_end_time text,
+    view_count integer,
+    like_count integer,
+    comment_count integer,
+    fetched_at text,
+    foreign key(channel_id) references channels(channel_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_videos_channel_published
-    ON videos(channel_id, published_at);
+create index if not exists idx_videos_channel_published
+    on videos(channel_id, published_at);
 
-CREATE TABLE IF NOT EXISTS video_snapshots (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    video_id TEXT NOT NULL,
-    captured_at TEXT NOT NULL,
-    view_count INTEGER,
-    like_count INTEGER,
-    comment_count INTEGER,
-    FOREIGN KEY(video_id) REFERENCES videos(video_id)
+create table if not exists video_snapshots (
+    id integer primary key autoincrement,
+    video_id text not null,
+    captured_at text not null,
+    view_count integer,
+    like_count integer,
+    comment_count integer,
+    foreign key(video_id) references videos(video_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_video_snapshots_video_time
-    ON video_snapshots(video_id, captured_at);
+create index if not exists idx_video_snapshots_video_time
+    on video_snapshots(video_id, captured_at);
 
-CREATE TABLE IF NOT EXISTS comment_threads (
-    thread_id TEXT PRIMARY KEY,
-    video_id TEXT NOT NULL,
-    top_comment_id TEXT,
-    total_reply_count INTEGER,
-    fetched_at TEXT,
-    FOREIGN KEY(video_id) REFERENCES videos(video_id)
+create table if not exists comment_threads (
+    thread_id text primary key,
+    video_id text not null,
+    top_comment_id text,
+    total_reply_count integer,
+    fetched_at text,
+    foreign key(video_id) references videos(video_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_comment_threads_video
-    ON comment_threads(video_id);
+create index if not exists idx_comment_threads_video
+    on comment_threads(video_id);
 
-CREATE TABLE IF NOT EXISTS comments (
-    comment_id TEXT PRIMARY KEY,
-    video_id TEXT NOT NULL,
-    author_channel_id TEXT,
-    author_display_name TEXT,
-    text TEXT,
-    published_at TEXT,
-    updated_at TEXT,
-    like_count INTEGER,
-    fetched_at TEXT,
-    FOREIGN KEY(video_id) REFERENCES videos(video_id)
+create table if not exists comments (
+    comment_id text primary key,
+    video_id text not null,
+    author_channel_id text,
+    author_display_name text,
+    text text,
+    published_at text,
+    updated_at text,
+    like_count integer,
+    fetched_at text,
+    foreign key(video_id) references videos(video_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_comments_video_time
-    ON comments(video_id, published_at);
+create index if not exists idx_comments_video_time
+    on comments(video_id, published_at);
 
-CREATE TABLE IF NOT EXISTS jobs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    job_type TEXT,
-    started_at TEXT,
-    ended_at TEXT,
-    status TEXT,
-    details_json TEXT
+create table if not exists jobs (
+    id integer primary key autoincrement,
+    job_type text,
+    started_at text,
+    ended_at text,
+    status text,
+    details_json text
 );
 
--- For keyword-based collection tracking
-CREATE TABLE IF NOT EXISTS search_runs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    q TEXT NOT NULL,
-    order_by TEXT,
-    mode TEXT,
-    filters_json TEXT,
-    collected_at TEXT
+-- for keyword-based collection tracking
+create table if not exists search_runs (
+    id integer primary key autoincrement,
+    q text not null,
+    order_by text,
+    mode text,
+    filters_json text,
+    collected_at text
 );
 
-CREATE INDEX IF NOT EXISTS idx_search_runs_q_time
-    ON search_runs(q, collected_at);
+create index if not exists idx_search_runs_q_time
+    on search_runs(q, collected_at);
 
-CREATE TABLE IF NOT EXISTS search_run_videos (
-    run_id INTEGER NOT NULL,
-    video_id TEXT NOT NULL,
-    PRIMARY KEY(run_id, video_id),
-    FOREIGN KEY(run_id) REFERENCES search_runs(id),
-    FOREIGN KEY(video_id) REFERENCES videos(video_id)
+create table if not exists search_run_videos (
+    run_id integer not null,
+    video_id text not null,
+    primary key(run_id, video_id),
+    foreign key(run_id) references search_runs(id),
+    foreign key(video_id) references videos(video_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_search_run_videos_video
-    ON search_run_videos(video_id);
+create index if not exists idx_search_run_videos_video
+    on search_run_videos(video_id);
 """
 
 
@@ -163,15 +163,15 @@ def connect(
     return conn
 
 
-
-
 def ensure_columns(
     conn: sqlite3.Connection,
     table: str,
     cols: Dict[str, str],
 ) -> None:
     """Add missing columns (SQLite migration-lite)."""
-    existing = {r["name"] for r in conn.execute(f"pragma table_info({table})").fetchall()}
+    existing = {
+        r["name"] for r in conn.execute(f"pragma table_info({table})").fetchall()
+    }
     for name, coltype in cols.items():
         if name in existing:
             continue
@@ -187,12 +187,16 @@ def init_db(
         conn.executescript(SCHEMA_SQL)
 
         # Migration-lite: add new columns if the user upgrades the tool
-        ensure_columns(conn, "videos", {
-            "live_broadcast_content": "TEXT",
-            "scheduled_start_time": "TEXT",
-            "actual_start_time": "TEXT",
-            "actual_end_time": "TEXT",
-        })
+        ensure_columns(
+            conn,
+            "videos",
+            {
+                "live_broadcast_content": "TEXT",
+                "scheduled_start_time": "TEXT",
+                "actual_start_time": "TEXT",
+                "actual_end_time": "TEXT",
+            },
+        )
 
         conn.commit()
     finally:
@@ -282,7 +286,11 @@ def upsert_videos(
                 sn.get("publishedAt"),
                 duration,
                 sn.get("categoryId"),
-                json.dumps(tags, ensure_ascii=False) if isinstance(tags, list) else None,
+                (
+                    json.dumps(tags, ensure_ascii=False)
+                    if isinstance(tags, list)
+                    else None
+                ),
                 sn.get("defaultLanguage"),
                 sn.get("liveBroadcastContent"),
                 (it.get("liveStreamingDetails") or {}).get("scheduledStartTime"),
@@ -357,7 +365,10 @@ def insert_channel_snapshots(
         ",".join(["?"] * len(channel_ids))
     )
     rows = conn.execute(q, channel_ids).fetchall()
-    out_rows = [(r["channel_id"], now, r["view_count"], r["subscriber_count"], r["video_count"]) for r in rows]
+    out_rows = [
+        (r["channel_id"], now, r["view_count"], r["subscriber_count"], r["video_count"])
+        for r in rows
+    ]
     conn.executemany(
         """
         insert into channel_snapshots(
@@ -390,7 +401,10 @@ def insert_video_snapshots(
         ",".join(["?"] * len(video_ids))
     )
     rows = conn.execute(q, video_ids).fetchall()
-    out_rows = [(r["video_id"], now, r["view_count"], r["like_count"], r["comment_count"]) for r in rows]
+    out_rows = [
+        (r["video_id"], now, r["view_count"], r["like_count"], r["comment_count"])
+        for r in rows
+    ]
     conn.executemany(
         """
         insert into video_snapshots(
@@ -510,7 +524,7 @@ def get_known_video_ids(
             from videos
             where channel_id=?
             """,
-            (channel_id,)
+            (channel_id,),
         ).fetchall()
     else:
         rows = conn.execute(
@@ -534,7 +548,7 @@ def get_channel_uploads_playlist_id(
         from channels
         where channel_id=?
         """,
-        (channel_id,)
+        (channel_id,),
     ).fetchone()
     if not r:
         return None
@@ -595,14 +609,16 @@ def list_jobs(
     ).fetchall()
     out: List[JobRecord] = []
     for r in rows:
-        out.append(JobRecord(
-            id=int(r["id"]),
-            job_type=r["job_type"],
-            started_at=r["started_at"],
-            ended_at=r["ended_at"],
-            status=r["status"],
-            details_json=r["details_json"],
-        ))
+        out.append(
+            JobRecord(
+                id=int(r["id"]),
+                job_type=r["job_type"],
+                started_at=r["started_at"],
+                ended_at=r["ended_at"],
+                status=r["status"],
+                details_json=r["details_json"],
+            )
+        )
     return out
 
 

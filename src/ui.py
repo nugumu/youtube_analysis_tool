@@ -45,22 +45,43 @@ def advanced_search_filters_expander() -> Dict[str, object]:
         - We intentionally do not expose eventType to keep it 'non-live' oriented.
     """
     with st.expander("検索条件（詳細）", expanded=False):
-        total_results = st.slider("取得件数（最大500）", min_value=10, max_value=500, value=50, step=10)
+        total_results = st.slider(
+            "取得件数（最大500）", min_value=10, max_value=500, value=50, step=10
+        )
 
         col1, col2, col3 = st.columns(3)
         with col1:
-            region_code = st.text_input("regionCode（任意）", value="JP", help="例: JP, US（空欄可）").strip() or None
-            channel_id = st.text_input("channelId（任意）", value="", help="特定チャンネル内検索（空欄可）").strip() or None
+            region_code = (
+                st.text_input(
+                    "regionCode（任意）", value="JP", help="例: JP, US（空欄可）"
+                ).strip()
+                or None
+            )
+            channel_id = (
+                st.text_input(
+                    "channelId（任意）", value="", help="特定チャンネル内検索（空欄可）"
+                ).strip()
+                or None
+            )
         with col2:
-            relevance_language = st.text_input(
-                "relevanceLanguage（任意）",
-                value="ja",
-                help="例: ja, en（空欄可）",
-            ).strip() or None
-            safe_search = st.selectbox("safeSearch", ["none", "moderate", "strict"], index=0)
+            relevance_language = (
+                st.text_input(
+                    "relevanceLanguage（任意）",
+                    value="ja",
+                    help="例: ja, en（空欄可）",
+                ).strip()
+                or None
+            )
+            safe_search = st.selectbox(
+                "safeSearch", ["none", "moderate", "strict"], index=0
+            )
         with col3:
-            video_duration = st.selectbox("videoDuration", ["any", "short", "medium", "long"], index=0)
-            video_definition = st.selectbox("videoDefinition", ["any", "high", "standard"], index=0)
+            video_duration = st.selectbox(
+                "videoDuration", ["any", "short", "medium", "long"], index=0
+            )
+            video_definition = st.selectbox(
+                "videoDefinition", ["any", "high", "standard"], index=0
+            )
 
         col4, col5, col6 = st.columns(3)
         with col4:
@@ -73,13 +94,31 @@ def advanced_search_filters_expander() -> Dict[str, object]:
         st.markdown("**期間指定** 例: `2024-01-01T00:00:00Z`")
         col7, col8 = st.columns(2)
         with col7:
-            published_after = st.text_input("publishedAfter（任意）", value="", help="指定した日時以降（空欄可）").strip() or None
+            published_after = (
+                st.text_input(
+                    "publishedAfter（任意）",
+                    value="",
+                    help="指定した日時以降（空欄可）",
+                ).strip()
+                or None
+            )
             if published_after and not _looks_like_rfc3339(published_after):
-                st.warning("publishedAfter の形式が正しくありません（例: 2024-01-01T00:00:00Z）")
+                st.warning(
+                    "publishedAfter の形式が正しくありません（例: 2024-01-01T00:00:00Z）"
+                )
         with col8:
-            published_before = st.text_input("publishedBefore（任意）", value="", help="指定した日時以前（空欄可）").strip() or None
+            published_before = (
+                st.text_input(
+                    "publishedBefore（任意）",
+                    value="",
+                    help="指定した日時以前（空欄可）",
+                ).strip()
+                or None
+            )
             if published_before and not _looks_like_rfc3339(published_before):
-                st.warning("publishedBefore の形式が正しくありません（例: 2024-01-01T00:00:00Z）")
+                st.warning(
+                    "publishedBefore の形式が正しくありません（例: 2024-01-01T00:00:00Z）"
+                )
 
     return {
         "total_results": int(total_results),
@@ -104,7 +143,9 @@ def advanced_search_collect_filters_expander() -> Dict[str, object]:
     """
 
     with st.expander("収集条件（検索）", expanded=True):
-        total_results = st.slider("最大取得件数（最大500）", min_value=10, max_value=500, value=200, step=10)
+        total_results = st.slider(
+            "最大取得件数（最大500）", min_value=10, max_value=500, value=200, step=10
+        )
 
         col1, col2, col3 = st.columns(3)
         with col1:
@@ -123,30 +164,55 @@ def advanced_search_collect_filters_expander() -> Dict[str, object]:
                 format_func=lambda x: order_label.get(x, x),
                 help="diff収集は『公開日（新しい順）』のときのみ有効です。",
             )
-            video_type = st.selectbox("種別（videoType）", ["any", "episode", "movie"], index=0)
+            video_type = st.selectbox(
+                "種別（videoType）", ["any", "episode", "movie"], index=0
+            )
         with col2:
-            region_code = st.text_input("国コード（regionCode, 任意）", value="JP").strip() or None
-            relevance_language = st.text_input("言語（relevanceLanguage, 任意）", value="ja").strip() or None
+            region_code = (
+                st.text_input("国コード（regionCode, 任意）", value="JP").strip()
+                or None
+            )
+            relevance_language = (
+                st.text_input("言語（relevanceLanguage, 任意）", value="ja").strip()
+                or None
+            )
         with col3:
-            safe_search = st.selectbox("セーフサーチ（safeSearch）", ["none", "moderate", "strict"], index=0)
-            channel_id = st.text_input("チャンネルIDで絞る（channelId, 任意）", value="").strip() or None
+            safe_search = st.selectbox(
+                "セーフサーチ（safeSearch）", ["none", "moderate", "strict"], index=0
+            )
+            channel_id = (
+                st.text_input("チャンネルIDで絞る（channelId, 任意）", value="").strip()
+                or None
+            )
 
         col4, col5, col6 = st.columns(3)
         with col4:
-            video_duration = st.selectbox("動画長（videoDuration）", ["any", "short", "medium", "long"], index=0)
+            video_duration = st.selectbox(
+                "動画長（videoDuration）", ["any", "short", "medium", "long"], index=0
+            )
         with col5:
-            video_definition = st.selectbox("画質（videoDefinition）", ["any", "high", "standard"], index=0)
+            video_definition = st.selectbox(
+                "画質（videoDefinition）", ["any", "high", "standard"], index=0
+            )
 
         st.markdown("**期間指定**（RFC3339）例: `2024-01-01T00:00:00Z`")
         col7, col8 = st.columns(2)
         with col7:
-            published_after = st.text_input("開始（publishedAfter, 任意）", value="").strip() or None
+            published_after = (
+                st.text_input("開始（publishedAfter, 任意）", value="").strip() or None
+            )
             if published_after and not _looks_like_rfc3339(published_after):
-                st.warning("publishedAfter の形式が正しくありません（例: 2024-01-01T00:00:00Z）")
+                st.warning(
+                    "publishedAfter の形式が正しくありません（例: 2024-01-01T00:00:00Z）"
+                )
         with col8:
-            published_before = st.text_input("終了（publishedBefore, 任意）", value="").strip() or None
+            published_before = (
+                st.text_input("終了（publishedBefore, 任意）", value="").strip() or None
+            )
             if published_before and not _looks_like_rfc3339(published_before):
-                st.warning("publishedBefore の形式が正しくありません（例: 2024-01-01T00:00:00Z）")
+                st.warning(
+                    "publishedBefore の形式が正しくありません（例: 2024-01-01T00:00:00Z）"
+                )
 
     return {
         "total_results": int(total_results),
@@ -200,7 +266,9 @@ def render_video_cards(
                 if description:
                     st.write(_truncate(description, 180))
 
+
 FilterObj = Union[analysis.VideoFilters, analysis.CommentFilters]
+
 
 def content_filter_panel(
     ch_df: pd.DataFrame,
@@ -263,7 +331,14 @@ def content_filter_panel(
     with r2[2]:
         bc = st.selectbox(
             "配信状態（動画）",
-            ["すべて", "通常動画", "ライブアーカイブ", "ライブ配信中", "予約/配信予定", "判定不可"],
+            [
+                "すべて",
+                "通常動画",
+                "ライブアーカイブ",
+                "ライブ配信中",
+                "予約/配信予定",
+                "判定不可",
+            ],
             index=0,
             key=f"{key_prefix}_bc",
         )
@@ -282,25 +357,58 @@ def content_filter_panel(
         r3 = st.columns([1, 1, 1, 1])
         with r3[0]:
             if show_view_range:
-                min_views = st.number_input("最小再生数（動画）", min_value=0, value=0, step=100, key=f"{key_prefix}_minv")
+                min_views = st.number_input(
+                    "最小再生数（動画）",
+                    min_value=0,
+                    value=0,
+                    step=100,
+                    key=f"{key_prefix}_minv",
+                )
         with r3[1]:
             if show_view_range:
-                max_views = st.number_input("最大再生数（動画, 0=無制限）", min_value=0, value=0, step=100, key=f"{key_prefix}_maxv")
+                max_views = st.number_input(
+                    "最大再生数（動画, 0=無制限）",
+                    min_value=0,
+                    value=0,
+                    step=100,
+                    key=f"{key_prefix}_maxv",
+                )
         with r3[2]:
             if show_duration_min:
-                dur_min = st.number_input("最小長（秒, 0=無制限）", min_value=0, value=0, step=10, key=f"{key_prefix}_min_dur")
+                dur_min = st.number_input(
+                    "最小長（秒, 0=無制限）",
+                    min_value=0,
+                    value=0,
+                    step=10,
+                    key=f"{key_prefix}_min_dur",
+                )
         with r3[3]:
             if show_duration_max:
-                dur_max = st.number_input("最大長（秒, 0=無制限）", min_value=0, value=0, step=10, key=f"{key_prefix}_max_dur")
+                dur_max = st.number_input(
+                    "最大長（秒, 0=無制限）",
+                    min_value=0,
+                    value=0,
+                    step=10,
+                    key=f"{key_prefix}_max_dur",
+                )
 
     # Row 4（任意：上位N）
     top_n = None
     if show_top_n:
         r4 = st.columns([1, 1, 1, 1])
         with r4[0]:
-            top_n = st.number_input("上位N", min_value=5, max_value=100, value=20, step=5, key=f"{key_prefix}_topn")
+            top_n = st.number_input(
+                "上位N",
+                min_value=5,
+                max_value=100,
+                value=20,
+                step=5,
+                key=f"{key_prefix}_topn",
+            )
 
-    include_shorts = True if shorts == "Shortsのみ" else False if shorts == "Shorts除外" else None
+    include_shorts = (
+        True if shorts == "Shortsのみ" else False if shorts == "Shorts除外" else None
+    )
     broadcast_kinds = None if bc == "すべて" else [bc]
 
     # mode別にFiltersを生成
@@ -338,10 +446,7 @@ def content_filter_panel(
     return f, (int(top_n) if top_n is not None else None), extra
 
 
-def _truncate(
-    s: str,
-    n: int
-) -> str:
+def _truncate(s: str, n: int) -> str:
     return s if len(s) <= n else s[: n - 1] + "…"
 
 

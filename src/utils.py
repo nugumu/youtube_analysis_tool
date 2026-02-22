@@ -13,14 +13,22 @@ from dateutil import parser as dtparser
 CHANNEL_ID_RE = re.compile(r"\bUC[0-9A-Za-z_-]{20,}\b")
 VIDEO_ID_RE = re.compile(r"\b[0-9A-Za-z_-]{11}\b")
 
-CHANNEL_URL_RE = re.compile(r"https?://(?:www\.)?youtube\.com/channel/(UC[0-9A-Za-z_-]{20,})")
+CHANNEL_URL_RE = re.compile(
+    r"https?://(?:www\.)?youtube\.com/channel/(UC[0-9A-Za-z_-]{20,})"
+)
 
 # Handles / custom URLs are tricky without search. We still detect them.
 HANDLE_URL_RE = re.compile(r"https?://(?:www\.)?youtube\.com/@([0-9A-Za-z_.-]{1,})")
-CUSTOM_URL_RE = re.compile(r"https?://(?:www\.)?youtube\.com/(c|user)/([0-9A-Za-z_.-]{1,})")
+CUSTOM_URL_RE = re.compile(
+    r"https?://(?:www\.)?youtube\.com/(c|user)/([0-9A-Za-z_.-]{1,})"
+)
 
-VIDEO_URL_RE = re.compile(r"https?://(?:www\.)?youtube\.com/watch\?v=([0-9A-Za-z_-]{11})")
-SHORTS_URL_RE = re.compile(r"https?://(?:www\.)?youtube\.com/shorts/([0-9A-Za-z_-]{11})")
+VIDEO_URL_RE = re.compile(
+    r"https?://(?:www\.)?youtube\.com/watch\?v=([0-9A-Za-z_-]{11})"
+)
+SHORTS_URL_RE = re.compile(
+    r"https?://(?:www\.)?youtube\.com/shorts/([0-9A-Za-z_-]{11})"
+)
 YOUTU_BE_RE = re.compile(r"https?://youtu\.be/([0-9A-Za-z_-]{11})")
 
 

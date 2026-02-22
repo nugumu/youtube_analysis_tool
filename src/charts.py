@@ -104,7 +104,13 @@ def views_hist(
     if df.empty:
         fig = px.histogram(title="再生数分布")
         return apply_plotly_defaults(fig)
-    fig = px.histogram(df, x="view_count", nbins=50, title="再生数分布", labels={"view_count": "再生数"})
+    fig = px.histogram(
+        df,
+        x="view_count",
+        nbins=50,
+        title="再生数分布",
+        labels={"view_count": "再生数"},
+    )
     return apply_plotly_defaults(fig)
 
 
@@ -114,7 +120,13 @@ def likes_hist(
     if df.empty:
         fig = px.histogram(title="高評価数（LIKE）分布")
         return apply_plotly_defaults(fig)
-    fig = px.histogram(df, x="like_count", nbins=50, title="高評価数（LIKE）分布", labels={"like_count": "高評価数"})
+    fig = px.histogram(
+        df,
+        x="like_count",
+        nbins=50,
+        title="高評価数（LIKE）分布",
+        labels={"like_count": "高評価数"},
+    )
     return apply_plotly_defaults(fig)
 
 
@@ -124,7 +136,13 @@ def comments_hist(
     if df.empty:
         fig = px.histogram(title="コメント数分布")
         return apply_plotly_defaults(fig)
-    fig = px.histogram(df, x="comment_count", nbins=50, title="コメント数分布", labels={"comment_count": "コメント数"})
+    fig = px.histogram(
+        df,
+        x="comment_count",
+        nbins=50,
+        title="コメント数分布",
+        labels={"comment_count": "コメント数"},
+    )
     return apply_plotly_defaults(fig)
 
 
@@ -135,7 +153,7 @@ def views_vs_duration(
         fig = px.scatter(title="再生数×動画長（分）")
         return apply_plotly_defaults(fig)
     tmp = df.copy()
-    tmp["duration_min"] = (tmp["duration_seconds"].fillna(0) / 60.0)
+    tmp["duration_min"] = tmp["duration_seconds"].fillna(0) / 60.0
     fig = px.scatter(
         tmp,
         x="duration_min",
@@ -208,8 +226,16 @@ def like_rate_hist(
         fig = px.histogram(title="高評価率（LIKE/再生）分布")
         return apply_plotly_defaults(fig)
     tmp = df.copy()
-    tmp["like_rate"] = _safe_rate(tmp["like_count"].fillna(0), tmp["view_count"].fillna(0))
-    fig = px.histogram(tmp, x="like_rate", nbins=60, title="高評価率（LIKE/再生）分布", labels={"like_rate": "高評価率"})
+    tmp["like_rate"] = _safe_rate(
+        tmp["like_count"].fillna(0), tmp["view_count"].fillna(0)
+    )
+    fig = px.histogram(
+        tmp,
+        x="like_rate",
+        nbins=60,
+        title="高評価率（LIKE/再生）分布",
+        labels={"like_rate": "高評価率"},
+    )
     return apply_plotly_defaults(fig)
 
 
@@ -220,8 +246,16 @@ def comment_rate_hist(
         fig = px.histogram(title="コメント率（コメント/再生）分布")
         return apply_plotly_defaults(fig)
     tmp = df.copy()
-    tmp["comment_rate"] = _safe_rate(tmp["comment_count"].fillna(0), tmp["view_count"].fillna(0))
-    fig = px.histogram(tmp, x="comment_rate", nbins=60, title="コメント率（コメント/再生）分布", labels={"comment_rate": "コメント率"})
+    tmp["comment_rate"] = _safe_rate(
+        tmp["comment_count"].fillna(0), tmp["view_count"].fillna(0)
+    )
+    fig = px.histogram(
+        tmp,
+        x="comment_rate",
+        nbins=60,
+        title="コメント率（コメント/再生）分布",
+        labels={"comment_rate": "コメント率"},
+    )
     return apply_plotly_defaults(fig)
 
 
