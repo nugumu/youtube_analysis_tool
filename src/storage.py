@@ -4,7 +4,7 @@ import json
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from .utils import utc_now_iso, parse_iso8601_duration_to_seconds
 

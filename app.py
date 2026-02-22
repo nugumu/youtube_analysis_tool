@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 import pandas as pd
 import streamlit as st

@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 import pandas as pd
 import sqlite3
